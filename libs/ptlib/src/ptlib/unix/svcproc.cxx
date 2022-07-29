@@ -378,7 +378,7 @@ void PSystemLog::Output(Level level, const char * cmsg)
     if (systemLogFileName == "-")
       out = &cerr;
     else
-      out = new ofstream(systemLogFileName, ios::app);
+      out = new ofstream((const char *)systemLogFileName, ios::app);
 
     PTime now;
     *out << now.AsString("yyyy/MM/dd hh:mm:ss.uuu\t");
@@ -592,7 +592,7 @@ int PServiceProcess::InitialiseService()
     pid_t pid;
 
     {
-      ifstream pidfile(pidfilename);
+      ifstream pidfile((const char *)pidfilename);
       if (!pidfile.is_open()) {
         cout << "Could not open pid file: \"" << pidfilename << "\""
                 " - " << strerror(errno) << endl;
@@ -722,7 +722,7 @@ int PServiceProcess::InitialiseService()
   else if (systemLogFileName == "-")
     cout << "All output for " << GetName() << " is to console." << endl;
   else {
-    ofstream logfile(systemLogFileName, ios::app);
+    ofstream logfile((const char *)systemLogFileName, ios::app);
     if (!logfile.is_open()) {
       cout << "Could not open log file \"" << systemLogFileName << "\""
               " - " << strerror(errno) << endl;
@@ -770,7 +770,7 @@ int PServiceProcess::InitialiseService()
   // Run as a daemon, ie fork
 
   if (!pidfilename) {
-    ifstream pidfile(pidfilename);
+    ifstream pidfile((const char *)pidfilename);
     if (pidfile.is_open()) {
       pid_t pid;
       pidfile >> pid;
@@ -798,7 +798,7 @@ int PServiceProcess::InitialiseService()
       cout << "Daemon started with pid " << pid << endl;
       if (!pidfilename) {
         // Write out the child pid to magic file in /var/run (at least for linux)
-        ofstream pidfile(pidfilename);
+        ofstream pidfile((const char *)pidfilename);
         if (pidfile.is_open())
           pidfile << pid;
         else
