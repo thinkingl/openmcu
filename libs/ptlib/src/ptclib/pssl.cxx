@@ -265,7 +265,11 @@ class PSSLMutexArray : public PSSLMutexArrayBase
 class PSSL_BIO
 {
   public:
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L || LIBRESSL_VERSION_NUMBER >= 0x3040100fL
+    PSSL_BIO(const BIO_METHOD *method = BIO_s_file())
+#else
     PSSL_BIO(BIO_METHOD *method = BIO_s_file_internal())
+#endif
       { bio = BIO_new(method); }
 
     ~PSSL_BIO()
@@ -763,10 +767,18 @@ PSSLDiffieHellman::PSSLDiffieHellman(const BYTE * pData, PINDEX pSize,
   if (dh == NULL)
     return;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+  DH_set0_pqg (dh, BN_bin2bn(pData, pSize, NULL), NULL, BN_bin2bn(gData, gSize, NULL));
+  const BIGNUM *p, *g;
+  DH_get0_pqg(dh, &p, NULL, &g);
+  if (p != NULL && g != NULL)
+    return;
+#else
   dh->p = BN_bin2bn(pData, pSize, NULL);
   dh->g = BN_bin2bn(gData, gSize, NULL);
   if (dh->p != NULL && dh->g != NULL)
     return;
+#endif
 
   DH_free(dh);
   dh = NULL;
@@ -1218,7 +1230,11 @@ BOOL PSSLChannel::RawSSLRead(void * buf, PINDEX & len)
 //
 
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#define PSSLCHANNEL(bio)      ((PSSLChannel *)(BIO_get_data (bio)))
+#else
 #define PSSLCHANNEL(bio)      ((PSSLChannel *)(bio->ptr))
+#endif
 
 extern "C" {
 
@@ -1231,10 +1247,16 @@ typedef long (*lfptr)();
 
 static int Psock_new(BIO * bio)
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+  BIO_set_init (bio, 0);
+  BIO_set_data (bio, NULL);    // this is really (PSSLChannel *)
+  BIO_set_flags (bio, 0);
+#else
   bio->init     = 0;
   bio->num      = 0;
   bio->ptr      = NULL;    // this is really (PSSLChannel *)
   bio->flags    = 0;
+#endif
 
   return(1);
 }
@@ -1245,13 +1267,23 @@ static int Psock_free(BIO * bio)
   if (bio == NULL)
     return 0;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+  if (BIO_get_shutdown (bio)) {
+    if (BIO_get_init (bio)) {
+#else
   if (bio->shutdown) {
     if (bio->init) {
+#endif
       PSSLCHANNEL(bio)->Shutdown(PSocket::ShutdownReadAndWrite);
       PSSLCHANNEL(bio)->Close();
     }
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+    BIO_set_init (bio, 0);
+    BIO_set_flags (bio, 0);
+#else
     bio->init  = 0;
     bio->flags = 0;
+#endif
   }
   return 1;
 }
@@ -1261,11 +1293,19 @@ static long Psock_ctrl(BIO * bio, int cmd, long num, void * /*ptr*/)
 {
   switch (cmd) {
     case BIO_CTRL_SET_CLOSE:
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+      BIO_set_shutdown (bio, (int)num);
+#else
       bio->shutdown = (int)num;
+#endif
       return 1;
 
     case BIO_CTRL_GET_CLOSE:
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+      return BIO_get_shutdown (bio);
+#else
       return bio->shutdown;
+#endif
 
     case BIO_CTRL_FLUSH:
       return 1;
@@ -1337,10 +1377,114 @@ static int Psock_puts(BIO * bio, const char * str)
   return ret;
 }
 
+} // extern "C"
+namespace {
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+
+inline BIO_METHOD* CreatePsockMethods()
+{
+  BIO_METHOD* methods_pSock = BIO_meth_new (BIO_TYPE_SOCKET, "PTLib-PSSLChannel");
+  if (methods_pSock) {
+    BIO_meth_set_write (methods_pSock, Psock_write);
+    BIO_meth_set_read (methods_pSock, Psock_read);
+    BIO_meth_set_puts (methods_pSock, Psock_puts);
+    BIO_meth_set_ctrl (methods_pSock, Psock_ctrl);
+    BIO_meth_set_create (methods_pSock, Psock_new);
+    BIO_meth_set_destroy (methods_pSock, Psock_free);
+  }
+  return methods_pSock;
+}
+
+#if defined(P_THREADSAFE_STATIC_INIT) && defined(P_EXCEPTIONS)
+
+struct PsockMethodsInitializer
+{
+  BIO_METHOD* methods;
+
+  PsockMethodsInitializer() : methods(CreatePsockMethods())
+  {
+    if (!methods)
+      throw std::runtime_error("Failed to create Psock methods");
+  }
+  ~PsockMethodsInitializer()
+  {
+    BIO_meth_free (methods);
+  }
 };
 
+inline BIO_METHOD* GetPsockMethods()
+{
+  try {
+    static const PsockMethodsInitializer meth_init;
+    return meth_init.methods;
+  }
+  catch (...) {
+    return NULL;
+  }
+}
 
-static BIO_METHOD methods_Psock =
+#elif defined(P_PTHREADS)
+
+static pthread_mutex_t g_methods_pSock_mutex = PTHREAD_MUTEX_INITIALIZER;
+static BIO_METHOD *g_methods_pSock = NULL;
+
+extern "C" void PTLibFreePsockMethods()
+{
+  BIO_meth_free (g_methods_pSock);
+  g_methods_pSock = NULL;
+}
+
+inline BIO_METHOD* GetPsockMethods()
+{
+  pthread_mutex_lock(&g_methods_pSock_mutex);
+
+  BIO_METHOD* methods = g_methods_pSock;
+  if (!methods) {
+    methods = CreatePsockMethods();
+    if (methods) {
+      g_methods_pSock = methods;
+      atexit(&PTLibFreePsockMethods);
+    }
+  }
+
+  pthread_mutex_unlock(&g_methods_pSock_mutex);
+
+  return methods;
+}
+
+#else
+
+static PMutex g_methods_pSock_mutex;
+static BIO_METHOD *g_methods_pSock = NULL;
+
+extern "C" void PTLibFreePsockMethods()
+{
+  BIO_meth_free (g_methods_pSock);
+  g_methods_pSock = NULL;
+}
+
+inline BIO_METHOD* GetPsockMethods()
+{
+  PWaitAndSignal lock(g_methods_pSock_mutex);
+
+  BIO_METHOD* methods = g_methods_pSock;
+  if (!methods) {
+    methods = CreatePsockMethods();
+    if (methods) {
+      g_methods_pSock = methods;
+      atexit(&PTLibFreePsockMethods);
+    }
+  }
+
+  return methods;
+}
+
+#endif
+
+#else // OPENSSL_VERSION_NUMBER >= 0x10100000l
+
+static BIO_METHOD g_methods_Psock =
 {
   BIO_TYPE_SOCKET,
   "PTLib-PSSLChannel",
@@ -1363,18 +1507,33 @@ static BIO_METHOD methods_Psock =
 #endif
 };
 
+inline BIO_METHOD* GetPsockMethods()
+{
+  return &g_methods_Psock;
+}
 
+#endif // OPENSSL_VERSION_NUMBER >= 0x10100000l
+
+} // namespace
 BOOL PSSLChannel::OnOpen()
 {
-  BIO * bio = BIO_new(&methods_Psock);
+  BIO_METHOD *methods_pSock = GetPsockMethods();
+  if (methods_pSock == NULL)
+    return FALSE;
+  BIO *bio = BIO_new(methods_pSock);
   if (bio == NULL) {
     SSLerr(SSL_F_SSL_SET_FD,ERR_R_BUF_LIB);
     return FALSE;
   }
 
   // "Open" then bio
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+  BIO_set_data (bio, this);
+  BIO_set_init (bio, 1);
+#else
   bio->ptr  = this;
   bio->init = 1;
+#endif
 
   SSL_set_bio(ssl, bio, bio);
   return TRUE;
