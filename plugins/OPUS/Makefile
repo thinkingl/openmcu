@@ -13,8 +13,8 @@ PLUGINEXT	=so
 CFLAGS	       +=-g -O2 
 STDCCFLAGS	=-fPIC -D__STDC_CONSTANT_MACROS -DOPUS_BUILD -DVAR_ARRAYS
 EXTRACFLAGS     =
-LDFLAGS        += -L/usr/lib -lopus
-CPPFLAGS       += -I/usr/include/opus
+LDFLAGS        += -L../../libs/opus/.libs -lopus
+CPPFLAGS       += -I../../libs/opus/include
 OPTCCFLAGS      =$(CPPFLAGS)
 
 SRCS	= opuscodec.cxx

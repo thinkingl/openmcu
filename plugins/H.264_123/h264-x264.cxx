@@ -483,7 +483,24 @@ static int get_codec_options(const struct PluginCodec_Definition * codec,
 {
     if (parmLen == NULL || parm == NULL || *parmLen != sizeof(struct PluginCodec_Option **))
         return 0;
-
+    // thinkingl@2022-08-01
+    // PluginCodec_Definition 中预置了这个userData
+    // 264中见 #define DECLARE_H323PARAM(prefix) 的宏定义, 给的值是  
+    // prefix##_OptionTable,			      /* user data */ 
+    // 也就是 下面这些options
+    /*
+      static struct PluginCodec_Option const * const prefix##_OptionTable[] = { \
+        &mediaPacketization, \
+        &tsto, \
+        &encodingThreads, \
+        &encodingQuality, \
+        &profileLevelId, \
+        &spropParameterSets, \
+        &customResolution, \
+        &txkeyFramePeriod, \
+        NULL \
+      }; \
+    */
     *(const void **)parm = codec->userData;
     *parmLen = 0; //FIXME
     return 1;

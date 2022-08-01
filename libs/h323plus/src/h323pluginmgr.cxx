@@ -306,7 +306,7 @@
  * Revision 1.13  2004/05/06 12:54:41  rjongbloed
  * Fixed Clone() functions in plug in capabilities so uses copy constructor and
  *   thus copies all fields and all ancestors fields.
- *   Thanks Gustavo Garc�a Bernardo Telef�nica R&D
+ *   Thanks Gustavo Garc�a Bernardo Telef�nica R&D
  *
  * Revision 1.12  2004/05/04 03:33:33  csoutheren
  * Added guards against comparing certain kinds of Capabilities
@@ -798,13 +798,20 @@ static void PopulateMediaFormatOptions(PluginCodec_Definition * _encoderCodec, O
   char ** _options = NULL;
   unsigned int optionsLen = sizeof(_options);
   int retVal;
-
+  
+  // thinkingl@2022-08-01  中文
+  // 获取codec的参数, 穿透后调用plugin的方法, 具体搜索 PLUGINCODEC_CONTROL_GET_CODEC_OPTIONS
+  // h264示例: h264-x264.cxx : static int get_codec_options(const struct PluginCodec_Definition * codec,
   if (CallCodecControl(_encoderCodec, NULL, GET_CODEC_OPTIONS_CONTROL, &_options, &optionsLen, retVal) && (_options != NULL)) {
     if (_encoderCodec->version < PLUGIN_CODEC_VERSION_OPTIONS) {
       PTRACE(3, "OpalPlugin\tAdding options to OpalMediaFormat " << format << " using old style method");
       // Old scheme
       char ** options = _options;
 
+      // thinkingl@2022-08-01
+      // 这里为什么3个一组处理,和代码对不上?
+      // 因为这里只处理老版本!!!! < PLUGIN_CODEC_VERSION_OPTIONS 
+      // 只是为了兼容老插件, 代码不用走读..
       while (options[0] != NULL && options[1] != NULL && options[2] != NULL) {
         const char * key = options[0];
         // Backward compatibility tests
@@ -893,6 +900,8 @@ static void PopulateMediaFormatOptions(PluginCodec_Definition * _encoderCodec, O
       }
     }
     else {
+      // thinkingl@2022-08-01
+      // 这才是当前版本插件的处理代码,直接使用插件定义的option设置MediaFormat的Option.
       // New scheme
       struct PluginCodec_Option const * const * options = (struct PluginCodec_Option const * const *)_options;
       PTRACE_IF(5, options != NULL, "Adding options to OpalMediaFormat " << format << " using new style method");
@@ -1305,6 +1314,8 @@ static H323CodecPluginCapabilityMapEntry audioMaps[] = {
 
 #ifdef H323_VIDEO
 
+// thinkingl@2022-08-01
+// 重要, 视频的能力都是用这几个函数创建的.
 static H323CodecPluginCapabilityMapEntry videoMaps[] = {
   // video codecs
   { PluginCodec_H323Codec_nonStandard,              H245_VideoCapability::e_nonStandard, &CreateNonStandardVideoCap },
@@ -3074,6 +3085,8 @@ void H323PluginCodecManager::OnShutdown()
 
 void H323PluginCodecManager::OnLoadPlugin(PDynaLink & dll, INT code)
 {
+  // thinkingl@2022-07-29
+  // 获取插件信息的函数具体定义: #define PLUGIN_CODEC_GET_CODEC_FN_STR "OpalCodecPlugin_GetCodecs"
   PDynaLink::Function getCodecs; //  PluginCodec_GetCodecFunction
   if (!dll.GetFunction(PString(signatureFunctionName), getCodecs))
   {
@@ -3136,6 +3149,10 @@ void H323PluginCodecManager::RegisterCodecs(unsigned int count, void * _codecLis
     BOOL videoSupported = encoder.version >= PLUGIN_CODEC_VERSION_VIDEO;
 
     // for every encoder, we need a decoder
+    // thinkingl@2022-07-29
+    // 遍历 encoder, 找到 encoder 对应的 decoder, 凑成一对儿后调用 CreateCapabilityAndMediaFormat
+    // encoder 的判定标准 sourceFormat 是原始数据.
+    // 包括 L16 / PCM-16-xxx, YUV420P.
     BOOL found = FALSE;
     BOOL isEncoder = FALSE;
     if (encoder.h323CapabilityType != PluginCodec_H323Codec_undefined && (
@@ -3158,6 +3175,8 @@ void H323PluginCodecManager::RegisterCodecs(unsigned int count, void * _codecLis
       isEncoder = TRUE;
       for (j = 0; j < count; j++) {
 
+        // thinkingl@2022-07-29
+        // decoder 对应 encoder 判定标准 sourceFormat  dstFormat 互换
         PluginCodec_Definition & decoder = codecList[j];
         if (
             (decoder.h323CapabilityType == encoder.h323CapabilityType) &&
@@ -3264,9 +3283,20 @@ void H323PluginCodecManager::CreateCapabilityAndMediaFormat(
 
   // add the media format
   if (defaultSessionID == 0) {
+    // thinkingl@2022-07-29
+    // 上面音视频的sessionId都被设置为 DefaultAudioSessionID
+    // == 0 不是音视频.
     PTRACE(3, "H323PLUGIN\tCodec DLL provides unknown media format " << (int)(encoderCodec->flags & PluginCodec_MediaTypeMask));
   } else {
+    // thinkingl@2022-07-29
+    // CreateCodecName 实现是取了 codec 的 destFormat.
+    // 如果 dstFormat 为空, 返回 codec 名称.
+    // 这样的话 CreateCodecName 只能处理 encoder, decoder 只会返回原始类型(L16/YUV420P)
     PString fmtName = CreateCodecName(encoderCodec, FALSE);
+
+    // thinkingl@2022-07-29
+    // 优先使用已有的 MediaFormat, 主要是 payload<96 的格式. 通过 OPAL_MEDIA_FORMAT_DECLARE 宏定义的.
+    // 这些 MediaFormat 的特色是参数是固定的.
     OpalMediaFormat existingFormat(fmtName, TRUE);
     if (existingFormat.IsValid()) {
       PTRACE(3, "H323PLUGIN\tMedia format " << fmtName << " already exists");
@@ -3378,6 +3408,18 @@ void H323PluginCodecManager::CreateCapabilityAndMediaFormat(
         H323Capability * cap = NULL;
         if (map[i].createFunc != NULL)
         {
+          // thinkingl@2022-08-01
+          // subType 的定义:
+          // enum Choices {
+          //   e_nonStandard,
+          //   e_h261VideoCapability,
+          //   e_h262VideoCapability,
+          //   e_h263VideoCapability,
+          //   e_is11172VideoCapability,
+          //   e_genericVideoCapability,
+          //   e_extendedVideoCapability
+          // };
+          // 对应标准: T-REC-H.245-202203 - B.2.2.5 Video capabilities
           cap = (*map[i].createFunc)(encoderCodec, decoderCodec, map[i].h323SubType);
         }
         else {
@@ -3521,11 +3563,18 @@ H323Capability * CreateNonStandardVideoCap(
                              pluginData->data, pluginData->dataLength);
 }
 
+// thinkingl@2022-08-01
+// Generic Video Capabilities, 在 T-REC-H.245-202203 中的格式就是标准的 H323Capability. 
+// T-REC-H.245-202203 - B.2.2.11 Generic capabilities
+// 
 H323Capability *CreateGenericVideoCap(
   PluginCodec_Definition * encoderCodec,  
   PluginCodec_Definition * decoderCodec,
   int /*subType*/) 
 {
+  // thinkingl@2022-08-01
+  // 在 plugin 中定义.
+  // H264位置: h264-x264.h, static struct PluginCodec_H323GenericCodecData prefix##_h323GenericData[]
   PluginCodec_H323GenericCodecData * pluginData = (PluginCodec_H323GenericCodecData *)encoderCodec->h323CapabilityData;
 
   if (pluginData == NULL ) {
@@ -4158,12 +4207,17 @@ H323CodecPluginGenericVideoCapability::H323CodecPluginGenericVideoCapability(
   rtpPayloadType = (RTP_DataFrame::PayloadTypes)(((_encoderCodec->flags & PluginCodec_RTPTypeMask) == PluginCodec_RTPTypeDynamic) ? RTP_DataFrame::DynamicBase : _encoderCodec->rtpPayload);
 }
 
+// thinkingl@2022-08-01
+// 填充 Capability 的各项参数.
 void H323CodecPluginGenericVideoCapability::LoadGenericData(const PluginCodec_H323GenericCodecData *data)
 {
 
 //  SetCommonOptions(GetWritableMediaFormat(),encoderCodec->parm.video.maxFrameWidth, encoderCodec->parm.video.maxFrameHeight, encoderCodec->parm.video.recommendedFrameRate);
-
+  // thinkingl@2022-08-01
+  // 从 encoderCodec 读取参数填充 MediaFormat
   PopulateMediaFormatOptions(encoderCodec,GetWritableMediaFormat());
+  // thinkingl@2022.08.01
+  // 从 h323GenericCodecData 读取参数填充 MediaFormat.
   PopulateMediaFormatFromGenericData(GetWritableMediaFormat(), data);
 }
 

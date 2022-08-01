@@ -56,15 +56,15 @@ EXPORT tag_typedef_t stuntag_timeout_ref =
 
 EXPORT tag_type_t stun_tag_list[] =
 {
+  stuntag_server,
+  stuntag_change_ip,
+  stuntag_domain,
+  stuntag_require_integrity,
+  stuntag_socket,
   stuntag_action,
   stuntag_integrity,
-  stuntag_server,
-  stuntag_require_integrity,
-  stuntag_domain,
-  stuntag_change_port,
-  stuntag_socket,
-  stuntag_change_ip,
   stuntag_timeout,
+  stuntag_change_port,
   stuntag_register_events,
   NULL
 };

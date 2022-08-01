@@ -249,7 +249,14 @@ static const char sdpH264[]       = { "h264" };
 #ifdef H323_H264_TEST
 ///////////////////////////////////////////////////////////////////////////
 // H.323 Definitions
-
+// thinkingl@2022-08-01
+// 便于阅读, 把PluginCodec_Option字段贴在这里, 注意,实际上定义的字段更多,但值用了前5个! 
+/*    enum PluginCodec_OptionTypes m_type;
+      const char *                 m_name;
+      unsigned                     m_readOnly;
+      enum PluginCodec_OptionMerge m_merge;
+      const char *                 m_value;
+*/
 static struct PluginCodec_Option const mediaPacketization =
   { PluginCodec_StringOption,  "Media Packetization",  0, PluginCodec_EqualMerge, "0.0.8.241.0.0.0.0" };
 

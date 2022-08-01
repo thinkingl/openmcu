@@ -13,8 +13,8 @@ LDSO	 	=-shared -Wl,-soname,$(SONAME)
 PLUGINEXT	=so
 CFLAGS	       +=-g -O2 
 STDCCFLAGS     +=-fPIC -D__STDC_CONSTANT_MACROS
-LDFLAGS	       +=-L/opt/openmcu-ru/lib -lavutil -lavcodec
-CPPFLAGS       +=-I/opt/openmcu-ru/include
+LDFLAGS	       += -lavutil -lavcodec
+CPPFLAGS       +=-I/usr/include/x86_64-linux-gnu
 OPTCCFLAGS      =$(CPPFLAGS)
 
 SRCS	+= g7231codec.cxx

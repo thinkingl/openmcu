@@ -45,8 +45,8 @@ LDSO	 	=-shared -Wl,-soname,$(SONAME)
 PLUGINEXT	=so
 CFLAGS	       +=-g -O2 
 STDCCFLAGS	=-fPIC -D__STDC_CONSTANT_MACROS
-LDFLAGS	       +=-L/opt/openmcu-ru/lib -lavcodec -lavutil
-CPPFLAGS       +=-I/opt/openmcu-ru/include
+LDFLAGS	       += -lavcodec -lavutil
+CPPFLAGS       +=-I/usr/include/x86_64-linux-gnu
 OPTCCFLAGS      =$(CPPFLAGS)
 
 LIBAVCODEC_CFLAGS=-I${prefix}/include -I.

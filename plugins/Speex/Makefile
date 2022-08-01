@@ -13,8 +13,8 @@ LDSO		=-shared -Wl,-soname,$(SONAME)
 PLUGINEXT	=so
 CFLAGS	       +=-g -O2 
 STDCCFLAGS	=-fPIC -D__STDC_CONSTANT_MACROS -D USE_KISS_FFT=1 -D EXPORT= -D FIXED_POINT=1
-LDFLAGS	       += -L/usr/lib -lspeex
-CPPFLAGS       += -I/usr/include
+LDFLAGS	       += -L../../libs/speex/libspeex/.libs -lspeex
+CPPFLAGS       += -I../../libs/speex/include
 OPTCCFLAGS      =$(CPPFLAGS)
 EXTRACFLAGS     =
 

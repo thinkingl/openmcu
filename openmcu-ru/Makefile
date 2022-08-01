@@ -5,7 +5,7 @@
 PREFIX          = /opt
 OSTYPE          = linux
 UNAME          := $(shell uname)
-MACHTYPE	= x86
+MACHTYPE	= x86_64
 PROG		= openmcu-ru
 SOURCES	       := main.cxx video.cxx conference.cxx filemembers.cxx custom.cxx h323.cxx html.cxx mcu.cxx sip.cxx template.cxx \
                    utils.cxx utils_av.cxx utils_list.cxx utils_type.cxx utils_json.cxx yuv.cxx \
@@ -15,24 +15,24 @@ SOURCES	       := main.cxx video.cxx conference.cxx filemembers.cxx custom.cxx h
 
 CXX		= g++
 CFLAGS         += -g -O2 
-LDFLAGS        += -L../libs/libyuv -L../libs/sofia-sip/libsofia-sip-ua/.libs -L/opt/git/test/libs/h323plus/lib -L/opt/git/test/libs/ptlib/lib -L/opt/lib -L/opt/openmcu-ru/lib -L/usr/lib -L/usr/local/lib
+LDFLAGS        += -L../libs/libyuv -L../libs/sofia-sip/libsofia-sip-ua/.libs -L../libs/srtp -L/home/thinkingl/code/openmcu-x/libs/h323plus/lib -L/home/thinkingl/code/openmcu-x/libs/ptlib/lib -L/opt/openmcu-ru/lib -L/usr/lib -L/usr/local/lib
 RFLAGS         += -Wl,-R/opt/openmcu-ru/lib
 SFLAGS         += 
-SFLAGS_STATIC  +=  -Wl,--start-group /opt/git/test/libs/ptlib/lib/libpt_linux_x86_r_s.a /opt/git/test/libs/h323plus/lib/libh323_linux_x86_r_s.a -Wl,--end-group
-SFLAGS_DEBUG   +=  -Wl,--start-group /opt/git/test/libs/ptlib/lib/libpt_linux_x86_d_s.a /opt/git/test/libs/h323plus/lib/libh323_linux_x86_d_s.a -Wl,--end-group
-LDLIBS	       +=  -lavcodec -lavutil -lavformat -lswscale -lsofia-sip-ua -lswresample -lfreetype -lyuv -lssl -lsrtp -lh323_linux_x86_r -lpt_linux_x86_r
-LDLIBS_STATIC  +=  -lavcodec -lavutil -lavformat -lswscale -lsofia-sip-ua -lswresample -lfreetype -lyuv -lssl -lsrtp
-LDLIBS_DEBUG   +=  -lavcodec -lavutil -lavformat -lswscale -lsofia-sip-ua -lswresample -lfreetype -lyuv -lssl -lsrtp
+SFLAGS_STATIC  +=  -Wl,--start-group /home/thinkingl/code/openmcu-x/libs/ptlib/lib/libpt_linux_x86_64_r_s.a /home/thinkingl/code/openmcu-x/libs/h323plus/lib/libh323_linux_x86_64_r_s.a -Wl,--end-group
+SFLAGS_DEBUG   +=  -Wl,--start-group /home/thinkingl/code/openmcu-x/libs/ptlib/lib/libpt_linux_x86_64_d_s.a /home/thinkingl/code/openmcu-x/libs/h323plus/lib/libh323_linux_x86_64_d_s.a -Wl,--end-group
+LDLIBS	       +=   -lsofia-sip-ua -lavcodec -lavutil -lavformat -lswscale -lswresample -lfreetype -lyuv -lssl -lsrtp -lh323_linux_x86_64_r -lpt_linux_x86_64_r
+LDLIBS_STATIC  +=   -lsofia-sip-ua -lavcodec -lavutil -lavformat -lswscale -lswresample -lfreetype -lyuv -lssl -lsrtp
+LDLIBS_DEBUG   +=   -lsofia-sip-ua -lavcodec -lavutil -lavformat -lswscale -lswresample -lfreetype -lyuv -lssl -lsrtp
 STDCCFLAGS     +=  -D__STDC_CONSTANT_MACROS -Wall
 STDCXXFLAGS    += 
-CPPFLAGS       += -I../libs/h323plus/include -I../libs/libyuv/include -I../libs/ptlib/include -I../libs/sofia-sip/libsofia-sip-ua/bnf -I../libs/sofia-sip/libsofia-sip-ua/docs -I../libs/sofia-sip/libsofia-sip-ua/features -I../libs/sofia-sip/libsofia-sip-ua/http -I../libs/sofia-sip/libsofia-sip-ua/ipt -I../libs/sofia-sip/libsofia-sip-ua/iptsec -I../libs/sofia-sip/libsofia-sip-ua/msg -I../libs/sofia-sip/libsofia-sip-ua/nea -I../libs/sofia-sip/libsofia-sip-ua/nta -I../libs/sofia-sip/libsofia-sip-ua/nth -I../libs/sofia-sip/libsofia-sip-ua/nua -I../libs/sofia-sip/libsofia-sip-ua/sdp -I../libs/sofia-sip/libsofia-sip-ua/sip -I../libs/sofia-sip/libsofia-sip-ua/soa -I../libs/sofia-sip/libsofia-sip-ua/sresolv -I../libs/sofia-sip/libsofia-sip-ua/stun -I../libs/sofia-sip/libsofia-sip-ua/su -I../libs/sofia-sip/libsofia-sip-ua/tport -I../libs/sofia-sip/libsofia-sip-ua/url -I/opt/include -I/opt/openmcu-ru/include -I/usr/include -I/usr/include/freetype2 -I/usr/include/srtp/ -I/usr/local/include
+CPPFLAGS       += -I../libs/h323plus/include -I../libs/libyuv/include -I../libs/ptlib/include -I../libs/sofia-sip/libsofia-sip-ua/bnf -I../libs/sofia-sip/libsofia-sip-ua/docs -I../libs/sofia-sip/libsofia-sip-ua/features -I../libs/sofia-sip/libsofia-sip-ua/http -I../libs/sofia-sip/libsofia-sip-ua/ipt -I../libs/sofia-sip/libsofia-sip-ua/iptsec -I../libs/sofia-sip/libsofia-sip-ua/msg -I../libs/sofia-sip/libsofia-sip-ua/nea -I../libs/sofia-sip/libsofia-sip-ua/nta -I../libs/sofia-sip/libsofia-sip-ua/nth -I../libs/sofia-sip/libsofia-sip-ua/nua -I../libs/sofia-sip/libsofia-sip-ua/sdp -I../libs/sofia-sip/libsofia-sip-ua/sip -I../libs/sofia-sip/libsofia-sip-ua/soa -I../libs/sofia-sip/libsofia-sip-ua/sresolv -I../libs/sofia-sip/libsofia-sip-ua/stun -I../libs/sofia-sip/libsofia-sip-ua/su -I../libs/sofia-sip/libsofia-sip-ua/tport -I../libs/sofia-sip/libsofia-sip-ua/url -I../libs/srtp/crypto/include -I../libs/srtp/include -I/opt/openmcu-ru/include -I/usr/include -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/x86_64-linux-gnu -I/usr/local/include
 OPTCCFLAGS      =$(CPPFLAGS)
 
 git_revision        = $(shell git rev-list HEAD --max-count=1)
 #git_revision_number = $(shell git rev-list HEAD | wc -l)
 STDCCFLAGS     +=-D GIT_REVISION=$(git_revision)
 
-PTLIBDIR        = /opt/git/test/libs/ptlib
+PTLIBDIR        = /home/thinkingl/code/openmcu-x/libs/ptlib
 include $(PTLIBDIR)/make/ptbuildopts.mak
 
 INSTALL = install

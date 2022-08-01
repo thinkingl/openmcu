@@ -9,35 +9,35 @@ ifndef PTLIBDIR
 	exit 1
 endif
 
-MACHTYPE   = x86
+MACHTYPE   = x86_64
 OSTYPE	   = linux
-OSRELEASE  = "2.6.29.6-smp"
+OSRELEASE  = "5.13.0-52-generic"
 
 STDCCFLAGS    +=  -D_REENTRANT -fno-exceptions 
-STDCXXFLAGS   +=  -felide-constructors -Wreorder 
+STDCXXFLAGS   +=  
 OPTSTDCCFLAGS += 
 LDFLAGS	      += 
-ENDLDLIBS     +=  -lpthread -lsasl2 -lssl -lcrypto -lresolv -ldl
-DEBUG_FLAG    += -g3 -ggdb -O0
+ENDLDLIBS     +=  -lpthread -lssl -lcrypto -lresolv -ldl
+DEBUG_FLAG    += -g
 
 AR		= /usr/bin/ar
 
 USE_GCC         = yes
 USE_PCH		= 1
-HAS_IPV6        = 1
+HAS_IPV6        = no
 HAS_RESOLVER	= 1
 HAS_OPENSSL	= 1
 HAS_OPENLDAP	= 
-HAS_SASL	= 
-HAS_SASL2	= 1
+HAS_SASL	= 0
+HAS_SASL2	= 
 HAS_EXPAT	= 
 HAS_REGEX	= 1
 HAS_SDL		= 
-HAS_PLUGINS	= 1
-HAS_VIDEO_CAPTURE = 1
+HAS_PLUGINS	= 
+HAS_VIDEO_CAPTURE = 
 
 HAS_ALSA	= 
-HAS_OSS		= 
+HAS_OSS		= 1
 HAS_V4L		= @HAS_V4L@
 HAS_V4L2	= @HAS_V4L2@
 HAS_BSDVIDEOCAP = @HAS_BSDVIDEOCAP@
@@ -61,10 +61,10 @@ HAS_AUDIO	= 1
 HAS_VIDEO	= 1
 USE_SHM_VIDEO_DEVICES = 1
 
-HAS_VXML	= 1
-HAS_JABBER	= 1
-HAS_XMLRPC	= 1
-HAS_SOAP	= 1
+HAS_VXML	= 
+HAS_JABBER	= 
+HAS_XMLRPC	= 
+HAS_SOAP	= 
 HAS_HTTP	= 1
 HAS_HTTPSVC	= 1
 HAS_CONFIG_FILE = 1
