@@ -1015,6 +1015,17 @@ static void SetDefaultVideoOptions(OpalMediaFormat & mediaFormat)
 
 static void PopulateMediaFormatFromGenericData(OpalMediaFormat & mediaFormat, const PluginCodec_H323GenericCodecData * genericData)
 {
+  // thinkingl@2022-08-02
+  // params的定义搜索 static const struct PluginCodec_H323GenericParameterDefinition
+  // H264的拷过来有这些:
+  /*
+  {{1},41, PluginCodec_H323GenericParameterDefinition::PluginCodec_GenericParameter_BooleanArray,{prefix##_Profile}}, \
+	{{1},42, PluginCodec_H323GenericParameterDefinition::PluginCodec_GenericParameter_unsignedMin,{prefix##_Level}}, \
+	{{1},3, PluginCodec_H323GenericParameterDefinition::PluginCodec_GenericParameter_unsignedMin,{0}}, \
+	{{1},4, PluginCodec_H323GenericParameterDefinition::PluginCodec_GenericParameter_unsignedMin,{0}}, \
+	{{1},5, PluginCodec_H323GenericParameterDefinition::PluginCodec_GenericParameter_unsignedMin,{0}}, \
+	{{1},6, PluginCodec_H323GenericParameterDefinition::PluginCodec_GenericParameter_unsignedMin,{0}}, \
+  */
   const PluginCodec_H323GenericParameterDefinition *ptr = genericData->params;
   for (unsigned i = 0; i < genericData->nParameters; i++, ptr++) {
     OpalMediaOption::H245GenericInfo generic;
@@ -1321,7 +1332,8 @@ static H323CodecPluginCapabilityMapEntry videoMaps[] = {
   { PluginCodec_H323Codec_nonStandard,              H245_VideoCapability::e_nonStandard, &CreateNonStandardVideoCap },
   { PluginCodec_H323VideoCodec_h261,                H245_VideoCapability::e_h261VideoCapability, &CreateH261Cap },
   { PluginCodec_H323VideoCodec_h263,                H245_VideoCapability::e_h263VideoCapability,    &CreateH263Cap },
-  { PluginCodec_H323Codec_generic,                  H245_VideoCapability::e_genericVideoCapability, &CreateGenericVideoCap },
+  { PluginCodec_H323Codec_generic,            
+        H245_VideoCapability::e_genericVideoCapability, &CreateGenericVideoCap },
 /*
   PluginCodec_H323VideoCodec_h262,                // not yet implemented
   PluginCodec_H323VideoCodec_is11172,             // not yet implemented
@@ -4209,6 +4221,8 @@ H323CodecPluginGenericVideoCapability::H323CodecPluginGenericVideoCapability(
 
 // thinkingl@2022-08-01
 // 填充 Capability 的各项参数.
+// thinkingl@2022-08-02
+// 从现在走读的了解来看, GenericData 中的信息要比codec中的信息重要.
 void H323CodecPluginGenericVideoCapability::LoadGenericData(const PluginCodec_H323GenericCodecData *data)
 {
 
@@ -4218,6 +4232,7 @@ void H323CodecPluginGenericVideoCapability::LoadGenericData(const PluginCodec_H3
   PopulateMediaFormatOptions(encoderCodec,GetWritableMediaFormat());
   // thinkingl@2022.08.01
   // 从 h323GenericCodecData 读取参数填充 MediaFormat.
+  // 穿透后数据来源是 h264-x264.h - static const struct PluginCodec_H323GenericParameterDefinition prefix##_h323params
   PopulateMediaFormatFromGenericData(GetWritableMediaFormat(), data);
 }
 
